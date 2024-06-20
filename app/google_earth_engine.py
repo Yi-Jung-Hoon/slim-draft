@@ -1,4 +1,7 @@
 # google_earth_engine.py
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_minimum_distance():
