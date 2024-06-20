@@ -1,0 +1,35 @@
+version: 1  # 로깅 설정의 버전을 나타냅니다. 현재 버전은 1입니다.
+disable_existing_loggers: False  # 기존 로거를 비활성화하지 않습니다.
+
+formatters:  # 로그 메시지의 포맷을 정의합니다.
+  standard:  # 'standard'라는 이름의 포매터를 정의합니다.
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # 로그 메시지 포맷
+
+handlers:  # 로그를 처리하는 핸들러를 정의합니다.
+  console:  # 'console'이라는 이름의 핸들러를 정의합니다.
+    class: logging.StreamHandler  # 콘솔에 로그를 출력하는 핸들러 클래스
+    formatter: standard  # 이 핸들러에 적용할 포매터는 'standard'입니다.
+    stream: ext://sys.stdout  # 로그를 표준 출력(stdout)으로 보냅니다.
+  file:  # 'file'이라는 이름의 핸들러를 정의합니다.
+    class: logging.FileHandler  # 파일에 로그를 기록하는 핸들러 클래스
+    formatter: standard  # 이 핸들러에 적용할 포매터는 'standard'입니다.
+    filename: "my_project.log"  # 로그를 기록할 파일의 이름
+
+loggers:  # 개별 로거를 정의합니다.
+  uvicorn:  # 'uvicorn'이라는 이름의 로거를 정의합니다.
+    handlers: [console, file]  # 이 로거는 'console'과 'file' 핸들러를 사용합니다.
+    level: DEBUG  # 이 로거의 로그 레벨은 DEBUG입니다.
+    propagate: False  # 상위 로거로 로그를 전파하지 않습니다.
+
+  uvicorn.error:  # 'uvicorn.error'라는 이름의 로거를 정의합니다.
+    level: INFO  # 이 로거의 로그 레벨은 INFO입니다.
+
+  uvicorn.access:  # 'uvicorn.access'라는 이름의 로거를 정의합니다.
+    handlers: [console, file]  # 이 로거는 'console'과 'file' 핸들러를 사용합니다.
+    level: INFO  # 이 로거의 로그 레벨은 INFO입니다.
+    propagate: False  # 상위 로거로 로그를 전파하지 않습니다.
+
+root:  # 루트 로거를 정의합니다.
+  # level: WARNING  # 루트 로거의 로그 레벨은 INFO입니다.
+  level: INFO  # 루트 로거의 로그 레벨은 INFO입니다.
+  handlers: [console, file]  # 루트 로거는 'console'과 'file' 핸들러를 사용합니다.
