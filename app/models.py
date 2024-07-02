@@ -5,7 +5,36 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def fetch_roi():
+    sql = """
+    SELECT * FROM peru.ROI_TAB
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    logger.debug(f"sql : {sql}")
+
+    try:
+        cursor.execute(sql)
+        # 컬럼 이름 가져오기
+        columns = [col[0] for col in cursor.description]
+        # 결과를 딕셔너리 리스트로 변환
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return results
+    except Exception as e:
+        logger.error(f"Error occurred while fetching ROI data: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def execute_query(sql, bind_vars):
+    """_summary_
+
+    Args:
+        sql (_type_): _description_
+        bind_vars (_type_): _description_
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     logger.debug(f"sql : {sql}")
@@ -16,6 +45,39 @@ def execute_query(sql, bind_vars):
     finally:
         cursor.close()
         conn.close()
+
+
+def insert_many(sql, bind_vars_tuple):
+    """_summary_
+
+    Args:
+        sql (_type_): _description_
+        bind_vars_tuple (_type_): _description_
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    logger.debug(f"sql : {sql}")
+
+    try:
+        cursor.executemany(sql, bind_vars_tuple)
+        conn.commit()
+        logger.info("insert_many request completed successfully")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def insert_stats(stats):
+    """계산된 통계 정보 추가
+
+    Args:
+        stats (_tuple_): 계산된 통계 정보
+    """
+    logger.info("insert computed data into DB")
+    sql = """
+    INSERT INTO peru.STAT_INFO (ROI_ID, DISTANCE, WATER_RATIO) VALUES (:ROI_ID, :DISTANCE, :WATER_RATIO)
+    """
+    insert_many(sql, stats)
 
 
 def insert_distance(distance):

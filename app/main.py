@@ -2,17 +2,7 @@
 import logging
 import logging.config
 import yaml
-
-# def setup_logging():
-#     logging.basicConfig(
-#         level=logging.DEBUG,
-#         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-#         handlers=[logging.FileHandler("my_project.log"), logging.StreamHandler()],
-#     )
-#     logging.info("로깅 초기화 완료")
-
-
-# setup_logging()
+import app.google_earth_engine as gee
 
 
 def setup_logging():
@@ -27,29 +17,21 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
+from app.routers import statistics_router
 from dotenv import load_dotenv
-from .controllers import calculate_and_save_distance, calculate_and_save_ratio
 
 logger = logging.getLogger(__name__)
-
 load_dotenv()
 
+gee.initialize_gee()
+
 app = FastAPI()
+app.include_router(statistics_router)
 
 
 @app.get("/")
 def test():
     return {"status": "success", "message": "OK"}
-
-
-@app.post("/api/v1/batch/statistics/distance")
-def calculate_distance():
-    return calculate_and_save_distance()
-
-
-@app.post("/api/v1/batch/statistics/ratio")
-def calculate_ratio():
-    return calculate_and_save_ratio()
 
 
 if __name__ == "__main__":

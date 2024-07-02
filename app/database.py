@@ -13,10 +13,10 @@ def get_db_connection():
     user = os.getenv("ORACLE_USER")
     password = os.getenv("ORACLE_PASSWORD")
 
-    logger.debug("connection info : ", host, port, service_name)
+    logger.debug(f"connection info : {host}, {port}, {service_name}")
 
     dsn = cx_Oracle.makedsn(host, port, service_name=service_name)
-    logger.debug("dsn : ", dsn)
+    logger.debug(f"dsn : {dsn}")
 
     connection = cx_Oracle.connect(user=user, password=password, dsn=dsn)
     return connection
