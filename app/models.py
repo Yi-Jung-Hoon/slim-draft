@@ -5,6 +5,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def fetch_test_graph():
+    sql = """
+    SELECT * FROM peru.graph
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    logger.debug(f"sql : {sql}")
+
+    try:
+        cursor.execute(sql)
+        # 컬럼 이름 가져오기
+        columns = [col[0] for col in cursor.description]
+        # 결과를 딕셔너리 리스트로 변환
+        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return results
+    except Exception as e:
+        logger.error(f"Error occurred while fetching ROI data: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def fetch_roi():
     sql = """
     SELECT * FROM peru.ROI_TAB
