@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_test_graph():
     sql = """
-    SELECT * FROM peru.graph
+    SELECT id, item, value FROM peru.graph
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -16,7 +16,9 @@ def fetch_test_graph():
     try:
         cursor.execute(sql)
         # 컬럼 이름 가져오기
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0].lower() for col in cursor.description]
+        logger.info(f"columns : {columns}")
+
         # 결과를 딕셔너리 리스트로 변환
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         return results
@@ -30,7 +32,9 @@ def fetch_test_graph():
 
 def fetch_roi():
     sql = """
-    SELECT * FROM peru.ROI_TAB
+    SELECT ROI_ID "id", ROI_NAME "name", DAM_ASSET_ID "dam_id", 
+           POLOYGON_ASSET_ID "polygon_id", RECT_ASSET_ID "rect_id"
+      FROM PERU.ROI_TAB
     """
     conn = get_db_connection()
     cursor = conn.cursor()

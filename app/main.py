@@ -17,7 +17,7 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
-from app.routers import statistics_router
+from app.routers import statistics_router, test_router, root_router, satellite_router
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,9 @@ gee.initialize_gee()
 
 app = FastAPI()
 app.include_router(statistics_router)
+app.include_router(test_router)
+app.include_router(root_router)
+app.include_router(satellite_router)
 
 
 @app.get("/")
