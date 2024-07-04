@@ -3,4 +3,5 @@ from .statistics import (
     test_router,
     root_router,
     satellite_router,
+    mines_router,
 )

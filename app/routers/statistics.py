@@ -18,6 +18,12 @@ satellite_router = APIRouter(
     prefix="/api/v1/satellite",
     tags=["satellite"],
 )
+
+mines_router = APIRouter(
+    prefix="/api/v1",
+    tags=["mines"],
+)
+
 test_router = APIRouter(
     prefix="/api/v1/test/statistics",
     tags=["default"],
@@ -69,3 +75,10 @@ def do_root_test():
 def do_fetch_roi():
     logger.info("/satellite/ called")
     return svc.fetch_roi()
+
+
+# 광산 조회
+@mines_router.get("/mines/list")
+def do_fetch_mines():
+    logger.info("/mine/list called")
+    return svc.fetch_mines()

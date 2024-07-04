@@ -1,58 +1,124 @@
 # models.py
+import time
 from .database import get_db_connection
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_test_graph():
-    sql = """
-    SELECT id, item, value FROM peru.graph
-    """
+def fetch_data(sql):
     conn = get_db_connection()
     cursor = conn.cursor()
     logger.debug(f"sql : {sql}")
 
     try:
         cursor.execute(sql)
-        # 컬럼 이름 가져오기
-        columns = [col[0].lower() for col in cursor.description]
-        logger.info(f"columns : {columns}")
-
-        # 결과를 딕셔너리 리스트로 변환
+        columns = [col[0] for col in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         return results
     except Exception as e:
-        logger.error(f"Error occurred while fetching ROI data: {e}")
+        logger.error(f"Error occurred while fetching data: {e}")
         raise
     finally:
         cursor.close()
         conn.close()
+
+
+def fetch_test_graph():
+    sql = """
+    SELECT id , item, value FROM peru.graph
+    """
+    return fetch_data(sql)  # Use the refactored function
 
 
 def fetch_roi():
     sql = """
     SELECT ROI_ID "id", ROI_NAME "name", DAM_ASSET_ID "dam_id", 
            POLOYGON_ASSET_ID "polygon_id", RECT_ASSET_ID "rect_id"
-      FROM PERU.ROI_TAB
+    FROM PERU.ROI_TAB
     """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    logger.debug(f"sql : {sql}")
+    return fetch_data(sql)  # Use the refactored function
 
-    try:
-        cursor.execute(sql)
-        # 컬럼 이름 가져오기
-        columns = [col[0] for col in cursor.description]
-        # 결과를 딕셔너리 리스트로 변환
-        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        return results
-    except Exception as e:
-        logger.error(f"Error occurred while fetching ROI data: {e}")
-        raise
-    finally:
-        cursor.close()
-        conn.close()
+
+def fetch_mines():
+    time.sleep(3)
+
+    sql = """
+    SELECT id "id", name "name", location_name "location_name" FROM PERU1.ORIGIN_MINES_LINK
+    """
+    return fetch_data(sql)  # Use the refactored function
+
+
+# def fetch_test_graph():
+#     sql = """
+#     SELECT id, item, value FROM peru.graph
+#     """
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     logger.debug(f"sql : {sql}")
+
+#     try:
+#         cursor.execute(sql)
+#         # 컬럼 이름 가져오기
+#         columns = [col[0].lower() for col in cursor.description]
+#         logger.info(f"columns : {columns}")
+
+#         # 결과를 딕셔너리 리스트로 변환
+#         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+#         return results
+#     except Exception as e:
+#         logger.error(f"Error occurred while fetching ROI data: {e}")
+#         raise
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+
+# def fetch_roi():
+#     sql = """
+#     SELECT ROI_ID "id", ROI_NAME "name", DAM_ASSET_ID "dam_id",
+#            POLOYGON_ASSET_ID "polygon_id", RECT_ASSET_ID "rect_id"
+#       FROM PERU.ROI_TAB
+#     """
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     logger.debug(f"sql : {sql}")
+
+#     try:
+#         cursor.execute(sql)
+#         # 컬럼 이름 가져오기
+#         columns = [col[0] for col in cursor.description]
+#         # 결과를 딕셔너리 리스트로 변환
+#         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+#         return results
+#     except Exception as e:
+#         logger.error(f"Error occurred while fetching ROI data: {e}")
+#         raise
+#     finally:
+#         cursor.close()
+#         conn.close()
+
+# def fetch_mines():
+#     sql = """
+#     SELECT id, name, location_name FROM PERU1.ORIGIN_MINES_LINK
+#     """
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     logger.debug(f"sql : {sql}")
+
+#     try:
+#         cursor.execute(sql)
+#         # 컬럼 이름 가져오기
+#         columns = [col[0] for col in cursor.description]
+#         # 결과를 딕셔너리 리스트로 변환
+#         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+#         return results
+#     except Exception as e:
+#         logger.error(f"Error occurred while fetching ROI data: {e}")
+#         raise
+#     finally:
+#         cursor.close()
+#         conn.close()
 
 
 def execute_query(sql, bind_vars):

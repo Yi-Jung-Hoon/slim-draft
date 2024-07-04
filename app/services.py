@@ -10,6 +10,10 @@ from app.google_earth_engine import calculate_batch_processing
 logger = logging.getLogger(__name__)
 
 
+def fetch_mines():
+    return model.fetch_mines()
+
+
 def fetch_test_graph():
     return model.fetch_test_graph()
 
