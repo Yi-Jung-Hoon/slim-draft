@@ -30,5 +30,8 @@ pipreqs .
 # 프로젝트 복사 후, 의존관계 설치하기
 pip install -r requirements.txt
 ```
+
+pip install python-multipart
+
 # 서버 구동
 uvicorn app.main:app --reload

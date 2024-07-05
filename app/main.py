@@ -1,7 +1,9 @@
 # main.py
+from . import constants
 import logging
 import logging.config
 import yaml
+import os
 import app.google_earth_engine as gee
 
 
@@ -17,13 +19,9 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI
-from app.routers import (
-    statistics_router,
-    test_router,
-    root_router,
-    satellite_router,
-    mines_router,
-)
+from fastapi.middleware.cors import CORSMiddleware
+from app.routers import all_routers
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -32,16 +30,22 @@ load_dotenv()
 gee.initialize_gee()
 
 app = FastAPI()
-app.include_router(statistics_router)
-app.include_router(test_router)
-app.include_router(root_router)
-app.include_router(satellite_router)
-app.include_router(mines_router)
 
+# CORS 미들웨어 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/")
-def test():
-    return {"status": "success", "message": "OK"}
+for router in all_routers:
+    app.include_router(router)
+
+# 디렉토리가 없으면 생성
+if not os.path.exists(constants.UPLOAD_DIRECTORY):
+    os.makedirs(constants.UPLOAD_DIRECTORY)
 
 
 if __name__ == "__main__":

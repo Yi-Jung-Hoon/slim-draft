@@ -2,6 +2,12 @@ import concurrent.futures
 import threading
 import time
 
+import os
+import shutil
+from typing import List
+from fastapi import UploadFile
+from . import constants
+
 import logging
 
 import app.models as model
@@ -105,3 +111,25 @@ def worker(roi_id):
 
     # print(f"Task {roi_id} finished")
     # return roi_id
+
+
+def save_uploaded_files(files: List[UploadFile]) -> List[str]:
+    """_summary_
+
+    Args:
+        files (List[UploadFile]): _description_
+
+    Returns:
+        List[str]: _description_
+    """
+    print(f"files : ${files}")
+    file_names = []
+    for file in files:
+        file_name = file.filename
+        file_names.append(file_name)
+
+        # 파일 저장(binary write)
+        with open(os.path.join(constants.UPLOAD_DIRECTORY, file_name), "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+    return file_names

@@ -41,7 +41,7 @@ def fetch_roi():
 
 
 def fetch_mines():
-    time.sleep(3)
+    time.sleep(2)
 
     sql = """
     SELECT id "id", name "name", location_name "location_name" FROM PERU1.ORIGIN_MINES_LINK
