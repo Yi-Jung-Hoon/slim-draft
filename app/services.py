@@ -20,8 +20,8 @@ def fetch_mines():
     return model.fetch_mines()
 
 
-def fetch_test_graph():
-    return model.fetch_test_graph()
+def fetch_test_graph(bind_vars=None):
+    return model.fetch_test_graph(bind_vars)
 
 
 def fetch_roi():

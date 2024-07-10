@@ -1,5 +1,5 @@
-from typing import Callable
-from fastapi import APIRouter, HTTPException
+from typing import Callable, Optional
+from fastapi import APIRouter, HTTPException, Request
 import app.services as svc
 import logging
 
@@ -29,6 +29,19 @@ async def calculate_distance():
 
 
 @router.get("/graph")
-async def do_default_test():
-    logger.info("graph called")
-    return svc.fetch_test_graph()
+async def do_default_test(
+    request: Request, start_date: Optional[str] = None, end_date: Optional[str] = None
+):
+    logger.info(f"graph called: {start_date}, {end_date}")
+    # 모든 요청 파라미터 정보 출력
+    logger.info(f"Request query params: {request.query_params}")
+    logger.info(f"Request headers: {request.headers}")
+
+    if start_date is None or end_date is None:
+        logger.debug("1")
+        bind_vars = None
+    else:
+        logger.debug("2")
+        bind_vars = {"start_date": start_date, "end_date": end_date}
+
+    return svc.fetch_test_graph(bind_vars)

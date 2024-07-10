@@ -31,5 +31,5 @@ loggers:  # 개별 로거를 정의합니다.
 
 root:  # 루트 로거를 정의합니다.
   # level: WARNING  # 루트 로거의 로그 레벨은 INFO입니다.
-  level: INFO  # 루트 로거의 로그 레벨은 INFO입니다.
+  level: DEBUG  # 루트 로거의 로그 레벨은 INFO입니다.
   handlers: [console, file]  # 루트 로거는 'console'과 'file' 핸들러를 사용합니다.

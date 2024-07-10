@@ -6,13 +6,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def fetch_data(sql):
+def fetch_data(sql, bind_vars=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     logger.debug(f"sql : {sql}")
+    logger.debug(f"bind_vars : {bind_vars}")
 
     try:
-        cursor.execute(sql)
+        if bind_vars is None:
+            cursor.execute(sql)
+        else:
+            cursor.execute(sql, bind_vars)
         columns = [col[0] for col in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
         return results
@@ -24,11 +28,33 @@ def fetch_data(sql):
         conn.close()
 
 
-def fetch_test_graph():
-    sql = """
-    SELECT id , item, value FROM peru.graph
-    """
-    return fetch_data(sql)  # Use the refactored function
+def fetch_test_graph(bind_vars=None):
+    logger.debug(f"bind_vars : {bind_vars}")
+    base_sql = """
+    SELECT 
+      ROI_ID "id",
+      SNAPSHOT_DATE "snapshot_date",
+      to_char(REG_DATE,'YYYY-MM-DD') "item",
+      UPDATE_DATE "update_date",
+      DISTANCE "value",
+      WATER_RATIO "water_ratio",
+      (100- WATER_RATIO) "land_ratio",
+      CLOUD_COVER "cloud_cover"
+      FROM peru.STAT_INFO
+     """
+
+    if bind_vars is not None:
+        sql = (
+            base_sql
+            + """
+        WHERE REG_DATE BETWEEN TO_TIMESTAMP(:start_date, 'YYYY-MM-DD') AND TO_TIMESTAMP(:end_date, 'YYYY-MM-DD')
+        ORDER BY reg_date
+        """
+        )
+    else:
+        sql = base_sql + "ORDER BY reg_date"
+
+    return fetch_data(sql, bind_vars)
 
 
 def fetch_roi():
