@@ -35,3 +35,6 @@ pip install python-multipart
 
 # 서버 구동
 uvicorn app.main:app --reload
+
+# oracle geo 관련
+pip install geopandas
