@@ -1,6 +1,6 @@
 # models.py
 import time
-from .database import get_db_connection
+from .database import get_db_connection, cx_Oracle
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,16 +32,16 @@ def fetch_test_graph(bind_vars=None):
     logger.debug(f"bind_vars : {bind_vars}")
     base_sql = """
     SELECT 
-      ROI_ID "id",
-      SNAPSHOT_DATE "snapshot_date",
-      to_char(REG_DATE,'YYYY-MM-DD') "item",
-      UPDATE_DATE "update_date",
-      DISTANCE "value",
-      WATER_RATIO "water_ratio",
-      (100- WATER_RATIO) "land_ratio",
-      CLOUD_COVER "cloud_cover"
-      FROM peru.STAT_INFO
-     """
+        ROI_ID "id",
+        SNAPSHOT_DATE "snapshot_date",
+        to_char(REG_DATE,'YYYY-MM-DD') "item",
+        UPDATE_DATE "update_date",
+        DISTANCE "value",
+        WATER_RATIO "water_ratio",
+        (100- WATER_RATIO) "land_ratio",
+        CLOUD_COVER "cloud_cover"
+    FROM peru.STAT_INFO
+    """
 
     if bind_vars is not None:
         sql = (
@@ -60,10 +60,52 @@ def fetch_test_graph(bind_vars=None):
 def fetch_roi():
     sql = """
     SELECT ROI_ID "id", ROI_NAME "name", DAM_ASSET_ID "dam_id", 
-           POLOYGON_ASSET_ID "polygon_id", RECT_ASSET_ID "rect_id"
+        POLOYGON_ASSET_ID "polygon_id", RECT_ASSET_ID "rect_id"
     FROM PERU.ROI_TAB
     """
     return fetch_data(sql)  # Use the refactored function
+
+
+def get_batch_target():
+    try:
+        # Oracle 연결
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # SQL 쿼리 실행
+        query = "SELECT ROI_ID, POLYGON, DAM, RECT FROM ROI_SPATIAL"
+        cursor.execute(query)
+
+        # 결과 가져오기
+        results = cursor.fetchall()
+
+        # 결과 처리
+        roi_list = []
+        for row in results:
+            roi_id, polygon, dam, rect = row
+            roi_list.append(
+                {
+                    "ROI_ID": roi_id,
+                    "POLYGON": extract_geometry_data(polygon),
+                    "DAM": extract_geometry_data(dam),
+                    "RECT": extract_geometry_data(rect),
+                }
+            )
+
+        logger.info(f"{len(roi_list)}개의 ROI 데이터를 조회했습니다.")
+        return roi_list
+
+    except cx_Oracle.Error as error:
+        logger.error(f"Oracle 오류 발생: {error}")
+        return None
+    except Exception as e:
+        logger.error(f"예상치 못한 오류 발생: {e}")
+        return None
+    finally:
+        if "cursor" in locals():
+            cursor.close()
+        if "connection" in locals():
+            connection.close()
 
 
 def fetch_mines():
@@ -213,3 +255,19 @@ def insert_ratio(ratio):
     """
     bind_vars = {"type": 1, "value": ratio}
     execute_query(sql, bind_vars)
+
+
+def extract_geometry_data(geometry):
+    if geometry is None:
+        return None
+    return {
+        "SDO_GTYPE": geometry.SDO_GTYPE,
+        "SDO_SRID": geometry.SDO_SRID,
+        "SDO_POINT": geometry.SDO_POINT.getvalue() if geometry.SDO_POINT else None,
+        "SDO_ELEM_INFO": (
+            geometry.SDO_ELEM_INFO.aslist() if geometry.SDO_ELEM_INFO else None
+        ),
+        "SDO_ORDINATES": (
+            geometry.SDO_ORDINATES.aslist() if geometry.SDO_ORDINATES else None
+        ),
+    }
