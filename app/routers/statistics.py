@@ -22,9 +22,11 @@ def execute_calculation(calculation_func: Callable):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+## /api/v1/batch/statistics/roi_stats 요청 처리
 @router.post("/roi_stats")
-async def calculate_distance():
-    logger.info("roi_stats")
+async def run_batch():
+    logger.info("batch started")
+    svc.run_batch()
     return "0"
 
 
