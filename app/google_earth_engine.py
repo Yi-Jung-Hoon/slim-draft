@@ -42,7 +42,7 @@ def initialize_gee():
         logger.error(f"An error occurred: {e}")
 
 
-def mask_water(image: ee.image) -> ee.image:
+def mask_water_v1(image: ee.image) -> ee.image:
     """
     Calculate NDWI (Normalized Difference Water Index) and mask water regions from a Sentinel-2 image.
 
@@ -52,8 +52,33 @@ def mask_water(image: ee.image) -> ee.image:
     Returns:
         ee.Image: A binary image where water regions are masked (1) and non-water regions are not (0).
     """
+    # B3 (Green): 560 nm (중심 파장)
+    # B8 (NIR): 842 nm (중심 파장)
     ndwi = image.normalizedDifference(["B3", "B8"]).rename("NDWI")
+    # ndwi = image.normalizedDifference(['B3', 'B5']).rename('NDWI')
+
+    # NDWI > 0인 조건만 적용하여 이진 마스크를 생성합니다.
+    # 이 경우 물 영역은 1, 나머지는 0의 값을 가지게 됩니다.
     water_mask = ndwi.gt(0.0)
+
+    return water_mask
+
+
+def mask_water_v2(image: ee.image) -> ee.image:
+    # B3 (Green): 560 nm (중심 파장)
+    # B5 (SWIR 1): 1610 nm (중심 파장)
+    ndwi = image.normalizedDifference(["B3", "B5"]).rename("NDWI")
+    # NDWI > 0인 픽셀만 유지하고 나머지는 마스크 처리
+    water_mask = ndwi.gt(0.0).selfMask()
+    return water_mask
+
+
+def mask_water(image: ee.image) -> ee.image:
+    # B3 (Green): 560 nm (중심 파장)
+    # B8 (NIR): 842 nm (중심 파장)
+    ndwi = image.normalizedDifference(["B3", "B8"]).rename("NDWI")
+    # NDWI > 0인 픽셀만 유지하고 나머지는 마스크 처리
+    water_mask = ndwi.gt(0.0).selfMask()
     return water_mask
 
 
@@ -73,12 +98,13 @@ def cal_ratio(water_mask: ee.Image, polygon_geometry: ee.Geometry) -> None:
     Returns:
         None: This function prints the water mask ratio and pixel counts within the specified boundary.
     """
-    print("boundary:", polygon_geometry.getInfo())
+    logger.debug(f"boundary: { polygon_geometry.getInfo()}")
 
     # polygonGeometry 내에서 waterMask를 마스킹합니다.
     water_mask_within_boundary = water_mask.clip(polygon_geometry)
 
     # boundary 내에서 waterMask의 픽셀 수를 계산합니다.
+    # ee.Reducer.sum()을 사용하여 픽셀 값을 합한다.
     water_mask_count = (
         water_mask_within_boundary.reduceRegion(
             reducer=ee.Reducer.sum(), geometry=polygon_geometry, scale=30, maxPixels=1e9
@@ -99,9 +125,11 @@ def cal_ratio(water_mask: ee.Image, polygon_geometry: ee.Geometry) -> None:
     )
 
     # 결과를 출력합니다.
-    print("polygonGeometry 내의 waterMask 비율:", water_mask_ratio)
-    print("polygonGeometry 내의 waterMask 픽셀 수:", water_mask_count)
-    print("polygonGeometry 내의 전체 픽셀 수:", boundary_pixel_count.getInfo())
+    logger.debug(f"polygonGeometry 내의 waterMask 픽셀 수:{water_mask_count}")
+    logger.debug(f"polygonGeometry 내의 전체 픽셀 수: {boundary_pixel_count.getInfo()}")
+    logger.debug(f"polygonGeometry 내의 waterMask 비율: {water_mask_ratio}")
+
+    return water_mask_ratio * 100
 
 
 def calculate_batch_processing(criteria):
