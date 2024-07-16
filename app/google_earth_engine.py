@@ -1,12 +1,13 @@
 # google_earth_engine.py
 import logging
 import ee
-import datetime
-
-# 임시
-import random
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+logging.getLogger("google_auth_httplib2").setLevel(logging.ERROR)
+logging.getLogger("googleapiclient.discovery").setLevel(logging.ERROR)
+logging.getLogger("urllib3.connectionpool").setLevel(logging.ERROR)
 
 from google.oauth2.service_account import Credentials
 from google.auth.exceptions import GoogleAuthError  # 올바른 범위 설정
@@ -132,59 +133,65 @@ def cal_ratio(water_mask: ee.Image, polygon_geometry: ee.Geometry) -> None:
     return water_mask_ratio * 100
 
 
-def calculate_batch_processing(criteria):
-    logger.info("calculate_batch_processing started")
+def calculate_statistics(roi):
+    snippet_id = "COPERNICUS/S2_SR_HARMONIZED"
+    start_date = "2024-01-01"
+    end_date = "2024-06-30"  # today
+    cloud_coverage = 20
 
-    # 자산 ID 정의
-    polygon_asset = "projects/aerobic-tesla-417706/assets/roi/cuscos/polygon"
+    # ROI 데이터에서 polygon과 dam 추출
+    polygon = ee.Geometry.Polygon(roi["POLYGON"]["SDO_ORDINATES"])
+    dam = ee.Geometry.LineString(roi["DAM"]["SDO_ORDINATES"])
 
-    # 자산 불러오기
-    polygon = ee.FeatureCollection(polygon_asset)
-
-    # 날짜 설정
-    today = ee.Date(datetime.datetime.now())
-    three_months_ago = today.advance(-3, "month")
-
-    # 이미지 컬렉션 필터링
-    image = (
-        ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+    image_collection = (
+        ee.ImageCollection(snippet_id)
         .filterBounds(polygon)
-        .filterDate(three_months_ago, "2024-06-07")
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .filterDate(start_date, end_date)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud_coverage))
         .sort("system:time_start", False)
-        .first()
-    )
-    water_mask = mask_water(image)
+        .map(lambda image: image.clip(polygon))
+    )  # 각 이미지를 polygon으로 클리핑
 
-    # 이미지 날짜 정보 추출
-    image_date = ee.Date(image.get("system:time_start"))
-    formatted_date = image_date.format("YYYY-MM-dd").getInfo()
+    latest_image = image_collection.first()
+    time_start_ms = latest_image.get("system:time_start").getInfo()
+
+    # Unix 타임스탬프(밀리초)를 datetime 객체로 변환
+    time_start_datetime = datetime.fromtimestamp(time_start_ms / 1000)
+
+    # datetime 객체를 'YYYY-MM-dd' 형식의 문자열로 변환
+    time_start_formatted = time_start_datetime.strftime("%Y-%m-%d")
+
+    logger.info(f"Latest image date: {time_start_formatted}")
+
+    water_mask = mask_water(latest_image)
+
+    vectors = water_mask.reduceToVectors(
+        geometry=latest_image.geometry(),
+        scale=30,
+        eightConnected=False,
+        maxPixels=1e9,
+        geometryType="polygon",
+    )
+
+    # 각 벡터 피처의 기하학을 처리
+    polygons = ee.FeatureCollection(vectors)
+
+    # 각 폴리곤의 vertex 수 계산
+    polygons_with_vertex_count = polygons.map(
+        lambda feature: feature.set(
+            "vertexCount", feature.geometry().coordinates().flatten().length()
+        )
+    )
+
+    largest_polygon = polygons_with_vertex_count.sort("vertexCount", False).first()
+
+    # 최소 거리 계산
+    min_distance = dam.distance(largest_polygon.geometry(), 1).getInfo()
 
     # 결과 출력
-    print("날짜:", formatted_date)
-    cal_ratio(water_mask, polygon.geometry())
+    logger.info(f"min_distance: {min_distance}m")
 
-    return random.randint(1, 1000)
+    # 지표수 비율 계산
+    water_ratio = cal_ratio(water_mask, polygon)
 
-
-def calculate_minimum_distance(criteria):
-    logger.info("calculate_minimum_distance started")
-    # Google Earth Engine API를 사용하여 최소 거리를 계산하는 로직 구현
-    ## 아래 코드 실행 시, 권한이 없는 경우 오류 발생함
-    T1 = (
-        ee.ImageCollection("LANDSAT/LC08/C02/T1")
-        .filterDate("2024-03-15", "2024-04-03")
-        .sort("system:time_start", False)
-        .first()
-    )
-
-    # 이미지 정보 출력 (옵션)
-    info = T1.getInfo()
-    logger.info(info)
-    return random.randint(1, 1000)
-
-
-def calculate_surface_ratio(criteria):
-    # Google Earth Engine API를 사용하여 지표수 비율을 계산하는 로직 구현
-
-    return random.randint(1, 100)
+    return min_distance, water_ratio
