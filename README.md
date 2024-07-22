@@ -35,6 +35,9 @@ pip install python-multipart
 
 # 서버 구동
 uvicorn app.main:app --reload
+## 외부에서 접속하기 위한 구동
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
 
 # oracle geo 관련
 pip install geopandas
