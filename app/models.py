@@ -112,7 +112,7 @@ def fetch_mines():
     time.sleep(2)
 
     sql = """
-    SELECT id "id", name "name", location_name "location_name" FROM PERU1.ORIGIN_MINES_LINK
+    SELECT id "id", name "name", location_name "location_name" FROM ORIGIN_MINES_LINK
     """
     return fetch_data(sql)  # Use the refactored function
 
@@ -203,6 +203,9 @@ def execute_query(sql, bind_vars):
     try:
         cursor.execute(sql, bind_vars)
         conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print("트랜잭션 오류 발생:", e)
     finally:
         cursor.close()
         conn.close()
@@ -223,6 +226,9 @@ def insert_many(sql, bind_vars_tuple):
         cursor.executemany(sql, bind_vars_tuple)
         conn.commit()
         logger.info("insert_many request completed successfully")
+    except Exception as e:
+        conn.rollback()
+        print("트랜잭션 오류 발생:", e)
     finally:
         cursor.close()
         conn.close()
@@ -235,9 +241,22 @@ def insert_stats(stats):
         stats (_tuple_): 계산된 통계 정보
     """
     logger.info("insert computed data into DB")
+    # sql = """
+    # INSERT INTO peru.STAT_INFO (ROI_ID, DISTANCE, WATER_RATIO, CLOUD_COVER, SNAPSHOT_DATE) VALUES (:ROI_ID, :DISTANCE, :WATER_RATIO, :CLOUD_COVER, :SNAPSHOT_DATE)
+    # """
+
     sql = """
-    INSERT INTO peru.STAT_INFO (ROI_ID, DISTANCE, WATER_RATIO) VALUES (:ROI_ID, :DISTANCE, :WATER_RATIO)
+        MERGE /*+ NO_PARALLEL */ INTO peru.STAT_INFO t
+        USING (SELECT :ROI_ID as ROI_ID, :DISTANCE as DISTANCE, 
+                        :WATER_RATIO as WATER_RATIO, :CLOUD_COVER as CLOUD_COVER, 
+                        :SNAPSHOT_DATE as SNAPSHOT_DATE
+                FROM dual) s
+        ON (t.ROI_ID = s.ROI_ID AND t.SNAPSHOT_DATE = s.SNAPSHOT_DATE)
+        WHEN NOT MATCHED THEN
+            INSERT (ROI_ID, DISTANCE, WATER_RATIO, CLOUD_COVER, SNAPSHOT_DATE)
+            VALUES (s.ROI_ID, s.DISTANCE, s.WATER_RATIO, s.CLOUD_COVER, s.SNAPSHOT_DATE)
     """
+
     insert_many(sql, stats)
 
 
