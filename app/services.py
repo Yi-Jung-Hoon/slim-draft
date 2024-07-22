@@ -56,6 +56,7 @@ def calculate_roi_stats(roi_list):
         roi_list (_type_): 관심영역 목록
     """
     logger.debug(f"ROI List : {roi_list}")
+    shared_data.clear()
 
     # 스레드 풀의 크기 설정 (최대 스레드 수)
     max_workers = 10  # 필요에 따라 조절
@@ -76,7 +77,7 @@ def calculate_roi_stats(roi_list):
                 logger.error(f"Task generated an exception: {exc}")
 
     logger.info("all batch processing completed")
-    logger.debug(f"shared_data : {shared_data}")
+    # logger.debug(f"shared_data : {shared_data}")
 
     """
     리스트 컴프리헨션:
@@ -94,7 +95,7 @@ def calculate_roi_stats(roi_list):
     ]
     """
     stats = [
-        (d["roi"], d["row"]["distance"], d["row"]["water_ratio"]) for d in shared_data
+        (d["roi"], d["row"]["distance"], d["row"]["water_ratio"], d["row"]["cloud_cover"], d["row"]["snapshot_date"]) for d in shared_data
     ]
     logger.info(f"stat :{stats}")
     model.insert_stats(stats)
@@ -107,7 +108,7 @@ def worker(roi):
     # Google Earth Engine API를 사용하여 최소 거리를 계산하는 로직 구현
     # 공유 dictionary 에 DB에 저장할 값을 추가한다.
 
-    min_distance, water_ratio = calculate_statistics(roi)
+    min_distance, water_ratio, cloud_cover, snapshot_date = calculate_statistics(roi)
 
     # shared_data에 결과 저장
     with lock:
@@ -117,11 +118,13 @@ def worker(roi):
                 "row": {
                     "distance": min_distance,
                     "water_ratio": water_ratio,
+                    "cloud_cover" : cloud_cover,
+                    "snapshot_date" : snapshot_date,
                 },
             }
         )
 
-    logger.debug(f"shared_data : {shared_data}")    
+    logger.debug(f"shared_data : {shared_data}")
     logger.info(f"ROI_ID({roi["ROI_ID"]}) finished")
     return roi["ROI_ID"]
 
