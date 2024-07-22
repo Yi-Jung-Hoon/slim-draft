@@ -134,10 +134,14 @@ def cal_ratio(water_mask: ee.Image, polygon_geometry: ee.Geometry) -> None:
 
 
 def calculate_statistics(roi):
+    logger.info("calculate_statistics started")
+
     snippet_id = "COPERNICUS/S2_SR_HARMONIZED"
     start_date = "2024-01-01"
-    end_date = "2024-06-30"  # today
-    cloud_coverage = 20
+    # datetime 객체를 'YYYY-MM-DD' 형식의 문자열로 변환
+    end_date = datetime.now().strftime("%Y-%m-%d")  # 오늘 날짜
+    logger.debug(f"end_date : {end_date}")
+    cloud_coverage = 50
 
     # ROI 데이터에서 polygon과 dam 추출
     polygon = ee.Geometry.Polygon(roi["POLYGON"]["SDO_ORDINATES"])
@@ -154,14 +158,16 @@ def calculate_statistics(roi):
 
     latest_image = image_collection.first()
     time_start_ms = latest_image.get("system:time_start").getInfo()
+    cloud_cover = round(latest_image.get("CLOUDY_PIXEL_PERCENTAGE").getInfo())
+    logger.debug(f"cloud_cover: {cloud_cover}")
 
     # Unix 타임스탬프(밀리초)를 datetime 객체로 변환
     time_start_datetime = datetime.fromtimestamp(time_start_ms / 1000)
 
     # datetime 객체를 'YYYY-MM-dd' 형식의 문자열로 변환
-    time_start_formatted = time_start_datetime.strftime("%Y-%m-%d")
+    snapshot_date = time_start_datetime.strftime("%Y%m%d")
 
-    logger.info(f"Latest image date: {time_start_formatted}")
+    logger.info(f"Latest image date: {snapshot_date}")
 
     water_mask = mask_water(latest_image)
 
@@ -186,12 +192,14 @@ def calculate_statistics(roi):
     largest_polygon = polygons_with_vertex_count.sort("vertexCount", False).first()
 
     # 최소 거리 계산
-    min_distance = dam.distance(largest_polygon.geometry(), 1).getInfo()
+    min_distance = round(dam.distance(largest_polygon.geometry(), 1).getInfo(), 2)
 
     # 결과 출력
     logger.info(f"min_distance: {min_distance}m")
 
     # 지표수 비율 계산
-    water_ratio = cal_ratio(water_mask, polygon)
+    water_ratio = round(cal_ratio(water_mask, polygon), 2)
 
-    return min_distance, water_ratio
+    logger.debug(f"{min_distance}, {water_ratio}, {snapshot_date}, {cloud_cover}")
+
+    return min_distance, water_ratio, cloud_cover, snapshot_date
